@@ -24,3 +24,12 @@ CLI completeness audit (2026-03-08) confirmed: 26 primary commands routed in cli
 
 📌 **Team update (2026-03-08T21:18:00Z):** FIDO + EECOM released unanimous GO verdict for v0.8.24. Smoke test approved as release gate. FIDO confirmed 32/32 pass + publish.yml wired correctly. EECOM confirmed 26/26 commands + packaging complete (minor gap: "streams" alias untested, non-blocking).
 
+### Skill Script Loader — Windows Module Cache Bug
+SkillScriptLoader dynamically imports handler scripts using `import()` + `pathToFileURL()`. CRITICAL: Windows path separator normalization is required BEFORE pathToFileURL() conversion. If backslashes are passed directly, the same script can load as two separate module instances due to different URL representations (`file:///D:/path/to/script.js` vs `file:///D:\path\to\script.js`). Solution: normalize backslashes to forward slashes before calling pathToFileURL(). This ensures consistent module cache keys and prevents duplicate handler instances.
+
+### Skill Script Loader — Security & Design Constraints
+resolveSkillPath() enforces path containment: resolved paths must stay within projectRoot or teamRoot. Throws Error on `..` segments that escape boundaries. With teamRoot, `.squad/` prefixes are stripped to avoid double-nesting (e.g., `.squad/skills/foo` → `{teamRoot}/skills/foo`). Partial implementations are allowed — missing handler scripts are silently skipped. Invalid scripts (module.default not a function) are fatal errors. SkillScriptLoader.load() returns null if no scripts/ directory exists, triggering markdown fallback in the skill system.
+
+### ToolRegistry.applySkillHandlers — Immutable Handler Replacement
+applySkillHandlers() replaces built-in tool handlers with skill-backed versions post-construction. Only affects tools that already exist in the registry — unknown tool names are silently ignored (skills cannot introduce new tools). Once applied, handlers are immutable for the session. This is the bridge point where SkillScriptLoader output integrates with the ToolRegistry's internal Map.
+

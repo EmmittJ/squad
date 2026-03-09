@@ -21,3 +21,6 @@ cli-packaging-smoke.test.ts validates the PACKAGED CLI artifact (npm pack → in
 
 📌 **Team update (2026-03-08T21:18:00Z):** FIDO + EECOM released unanimous GO verdict for v0.8.24. Smoke test approved as release gate. FIDO confirmed 32/32 pass + publish.yml wired correctly. EECOM confirmed 26/26 commands + packaging complete (minor gap: "streams" alias untested, non-blocking).
 
+### Skill Script Loader Testing (M3-3, v0.8.25)
+skill-script-loader.test.ts validates SkillScriptLoader, ToolRegistry.applySkillHandlers(), and resolveSkillPath(). 33 tests covering: null returns (markdown fallback), partial implementations, lifecycle hooks, error cases (non-function exports, missing exports), schema lookup filtering, tool handler replacement (uses pre-registered squad tools, not mocks), and path resolution with containment validation. Key patterns: temp test fixtures with randomUUID() in test-fixtures/, dynamic import() of real .js files, Windows path normalization (path.resolve() for cross-platform compatibility, forward-slash check for .squad/ prefix stripping). Tests written concurrently with CONTROL and EECOM implementations based on design spec. All 33 passing (923ms runtime).
+
