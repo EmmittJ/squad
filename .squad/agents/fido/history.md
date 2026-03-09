@@ -21,6 +21,31 @@ cli-packaging-smoke.test.ts validates the PACKAGED CLI artifact (npm pack → in
 
 📌 **Team update (2026-03-08T21:18:00Z):** FIDO + EECOM released unanimous GO verdict for v0.8.24. Smoke test approved as release gate. FIDO confirmed 32/32 pass + publish.yml wired correctly. EECOM confirmed 26/26 commands + packaging complete (minor gap: "streams" alias untested, non-blocking).
 
-### Skill Script Loader Testing (M3-3, v0.8.25)
-skill-script-loader.test.ts validates SkillScriptLoader, ToolRegistry.applySkillHandlers(), and resolveSkillPath(). 33 tests covering: null returns (markdown fallback), partial implementations, lifecycle hooks, error cases (non-function exports, missing exports), schema lookup filtering, tool handler replacement (uses pre-registered squad tools, not mocks), and path resolution with containment validation. Key patterns: temp test fixtures with randomUUID() in test-fixtures/, dynamic import() of real .js files, Windows path normalization (path.resolve() for cross-platform compatibility, forward-slash check for .squad/ prefix stripping). Tests written concurrently with CONTROL and EECOM implementations based on design spec. All 33 passing (923ms runtime).
+### Skill Script Loader Testing — Real Fixtures, No Mocks (2026-03-09)
+
+skill-script-loader.test.ts validates SkillScriptLoader, ToolRegistry.applySkillHandlers(), and resolveSkillPath(). **33 tests, all passing (372ms).**
+
+**Test Coverage:**
+- Null return conditions (markdown fallback): 2 tests
+- Successful load variations: 6 tests
+- Lifecycle hooks (init/dispose): 6 tests
+- Error cases (non-function exports, bad paths): 3 tests
+- Schema lookup filtering: 3 tests
+- ToolRegistry.applySkillHandlers (handler replacement): 5 tests
+- resolveSkillPath (path resolution + containment): 8 tests
+
+**Key Pattern: Real Temp Fixtures**
+- Create unique temp directory per test (test-fixtures/skill-loader-{randomUUID}/)
+- Write actual .js handler scripts to filesystem
+- Load with SkillScriptLoader via dynamic import()
+- Cleanup with fs.rmSync({recursive: true})
+
+**Why Real Files:**
+1. Import semantics — dynamic import() requires actual paths, no mock equivalent
+2. Windows path validation — backslash vs forward slash bugs only surface with real file URLs
+3. Module cache testing — script reloading behavior only testable with real import() calls
+
+**Trade-offs:** Slower than in-memory mocks (~920ms for 33 tests vs ~50ms theoretical), but validates end-to-end reality. Pattern approved for other skill-related test files.
+
+📌 **Team update (2026-03-09T15:05:20Z):** M3-3 skill-script sprint complete. FIDO wrote comprehensive test suite (33 tests, all passing). Real fixture pattern approved for reuse. Depends on CONTROL's handler-types.ts and EECOM's SkillScriptLoader. PR #1 open. — Emmitt requested.
 

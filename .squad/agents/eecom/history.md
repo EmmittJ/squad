@@ -24,10 +24,22 @@ CLI completeness audit (2026-03-08) confirmed: 26 primary commands routed in cli
 
 📌 **Team update (2026-03-08T21:18:00Z):** FIDO + EECOM released unanimous GO verdict for v0.8.24. Smoke test approved as release gate. FIDO confirmed 32/32 pass + publish.yml wired correctly. EECOM confirmed 26/26 commands + packaging complete (minor gap: "streams" alias untested, non-blocking).
 
-### Skill Script Loader — Windows Module Cache Bug
-SkillScriptLoader dynamically imports handler scripts using `import()` + `pathToFileURL()`. CRITICAL: Windows path separator normalization is required BEFORE pathToFileURL() conversion. If backslashes are passed directly, the same script can load as two separate module instances due to different URL representations (`file:///D:/path/to/script.js` vs `file:///D:\path\to\script.js`). Solution: normalize backslashes to forward slashes before calling pathToFileURL(). This ensures consistent module cache keys and prevents duplicate handler instances.
+### Skill Script Loader Implementation (2026-03-09)
 
-### Skill Script Loader — Security & Design Constraints
+Implemented SkillScriptLoader class in `packages/squad-sdk/src/skills/skill-script-loader.ts` for dynamic loading of executable skill handlers from backend skill directories (`.squad/skills/{name}/scripts/`). Added `ToolRegistry.applySkillHandlers()` method to replace built-in tool handlers with skill-backed versions. Exported SkillScriptLoader + resolveSkillPath from skills barrel.
+
+**Key Design Decisions:**
+1. **Tool Name → Script Name Mapping:** Tool names follow `squad_{operation}` convention. Script filenames strip the `squad_` prefix: `squad_create_issue` → `create_issue.js`. CONCERN_TOOL_MAP constant defines mapping.
+2. **Windows Path Normalization:** Dynamic imports use `pathToFileURL()` but require path separator normalization BEFORE conversion. Backslashes normalized to forward slashes to prevent duplicate module instances.
+3. **Path Containment Enforcement:** `resolveSkillPath()` enforces security boundaries. Resolved paths must stay within projectRoot or teamRoot. Throws Error on escape attempts.
+4. **Partial Implementation Support:** Missing handler scripts silently skipped. Scripts with invalid exports fatal. No scripts/ directory → returns null (markdown fallback).
+5. **Handler Signature Bridge:** `wrapSkillHandler()` bridges SkillHandler `(args, config)` to SquadToolHandler `(args, invocation)` signature.
+6. **Lifecycle Hooks:** Optional `scripts/lifecycle.js` can export `init(config)` and `dispose()` functions.
+7. **ToolRegistry Integration:** `applySkillHandlers()` replaces tool handlers in registry's internal Map. Only affects pre-existing tools.
+
+**Why:** Core of skill-script model — backend skills replace built-in tool implementations. Design prioritizes security (path containment), partial implementations, and Windows compatibility.
+
+📌 **Team update (2026-03-09T15:05:20Z):** M3-3 skill-script sprint complete. EECOM implemented SkillScriptLoader + ToolRegistry.applySkillHandlers(). Depends on CONTROL's handler-types.ts. FIDO validated with 33-test suite, all passing. PR #1 open. — Emmitt requested.
 resolveSkillPath() enforces path containment: resolved paths must stay within projectRoot or teamRoot. Throws Error on `..` segments that escape boundaries. With teamRoot, `.squad/` prefixes are stripped to avoid double-nesting (e.g., `.squad/skills/foo` → `{teamRoot}/skills/foo`). Partial implementations are allowed — missing handler scripts are silently skipped. Invalid scripts (module.default not a function) are fatal errors. SkillScriptLoader.load() returns null if no scripts/ directory exists, triggering markdown fallback in the skill system.
 
 ### ToolRegistry.applySkillHandlers — Immutable Handler Replacement

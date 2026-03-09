@@ -137,4 +137,68 @@ Definitive CLI completeness audit confirms all commands work post-publish.
 
 ---
 
+## Sprint: M3-3 Skill Script Handlers
+
+### Handler Type System Design — Disjoint Tool Name Enforcement
+**By:** CONTROL  
+**Date:** 2026-03-09
+
+The skill handler type system (`packages/squad-sdk/src/skills/handler-types.ts`) uses compile-time type assertions to enforce disjoint tool names across concern handler interfaces.
+
+**What:**
+- `OwnKeys<T>` strips HandlerLifecycle keys, keeps only tool-name keys
+- `AssertDisjoint<A, B>` returns `true | never` — true if A and B share no tool names, never otherwise
+- All 6 pairs explicitly checked: TaskHandlers, DecisionHandlers, MemoryHandlers, LogHandlers
+- Compile fails if any concern pair shares a tool name
+
+**Why:** Without this check, adding duplicate tool names (e.g., `squad_list` in both TaskHandlers and DecisionHandlers) would silently compile but break `resolveHandler()` at runtime. The type system catches this class of error during development with zero runtime overhead.
+
+**Impact:** Prevents runtime handler resolution bugs at compile time. Self-documenting — assertion types live alongside handler interfaces they protect.
+
+---
+
+### Skill Script Loader Implementation
+**By:** EECOM  
+**Date:** 2026-03-09
+
+Implemented SkillScriptLoader class in `packages/squad-sdk/src/skills/skill-script-loader.ts` for dynamic loading of executable skill handlers from backend skill directories (`.squad/skills/{name}/scripts/`). Added `ToolRegistry.applySkillHandlers()` method to replace built-in tool handlers with skill-backed versions.
+
+**What:**
+1. **Tool Name → Script Name Mapping:** Tool names follow `squad_{operation}` convention. Script filenames strip the `squad_` prefix: `squad_create_issue` → `create_issue.js`.
+2. **Windows Path Normalization:** Dynamic imports use `pathToFileURL()` but require path separator normalization BEFORE conversion. Backslashes normalized to forward slashes.
+3. **Path Containment Enforcement:** `resolveSkillPath()` ensures resolved paths stay within projectRoot or teamRoot. Throws Error on escape attempts.
+4. **Partial Implementation Support:** Missing handler scripts silently skipped. Invalid exports (module.default not a function) fatal. No scripts/ directory → returns null.
+5. **Handler Signature Bridge:** `wrapSkillHandler()` bridges SkillHandler signature `(args, config)` to SquadToolHandler signature `(args, invocation)`.
+6. **Lifecycle Hooks:** Optional `scripts/lifecycle.js` can export `init(config)` and `dispose()` functions.
+7. **ToolRegistry Integration:** `applySkillHandlers()` replaces tool handlers in registry's internal Map. Only affects pre-existing tools — unknown names silently ignored.
+
+**Why:** Core of the skill-script model — backend skills can replace built-in tool implementations with custom logic. Design prioritizes security (path containment), partial implementations, and Windows compatibility. ToolRegistry remains single source of truth.
+
+---
+
+### Skill Script Loader Test Design
+**By:** FIDO  
+**Date:** 2026-03-09
+
+Test fixture pattern for SkillScriptLoader validation: use real temporary script files with dynamic import() rather than mocks or stubs.
+
+**What:**
+- Create unique temp directory per test
+- Write valid handler scripts to temp filesystem
+- Load with SkillScriptLoader
+- Cleanup with fs.rmSync
+
+**Why:** 
+1. **Import Semantics:** dynamic import() requires actual filesystem paths. Cannot mock module resolution without significant overhead.
+2. **Windows Path Validation:** Path normalization bugs (backslash vs forward slash) only surface with real file URLs. pathToFileURL() behavior differs across separators.
+3. **Module Cache Testing:** Script reloading behavior can only be validated with real import() calls.
+
+**Pattern Approved:**
+- 33 tests, all passing (372ms)
+- Validates end-to-end script loading, catches path bugs, no mocking complexity
+- Trade-off: slower (~920ms for 33 tests) but realistic
+- Approved for other skill-related test files
+
+---
+
 *Fresh start — Mission Control rebirth, 2026-03-08. Previous decisions archived.*

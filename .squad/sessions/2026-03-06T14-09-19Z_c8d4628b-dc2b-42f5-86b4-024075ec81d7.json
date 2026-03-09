@@ -1,0 +1,35 @@
+{
+  "id": "c8d4628b-dc2b-42f5-86b4-024075ec81d7",
+  "createdAt": "2026-03-06T14:09:13.423Z",
+  "lastActiveAt": "2026-03-06T14:11:58.101Z",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Operation cancelled.",
+      "timestamp": "2026-03-06T14:09:19.048Z"
+    },
+    {
+      "role": "system",
+      "content": "⚠ Empty response detected. Retrying... (attempt 2/4)",
+      "timestamp": "2026-03-06T14:09:19.304Z"
+    },
+    {
+      "role": "agent",
+      "agentName": "coordinator",
+      "content": "Hey! 👋 I'm the Squad Coordinator for **squad-sdk**. I route work to the right team member based on your needs.\n\nWhat can I help you with today? Whether it's picking up an issue, asking a quick question, or planning a feature — just let me know.",
+      "timestamp": "2026-03-06T14:09:46.601Z"
+    },
+    {
+      "role": "agent",
+      "agentName": "coordinator",
+      "content": "Hey! 👋 I'm the Squad Coordinator for the squad-sdk project. I route work to the right team members and help manage tasks.\n\nWhat can I help you with today?",
+      "timestamp": "2026-03-06T14:11:41.980Z"
+    },
+    {
+      "role": "agent",
+      "agentName": "coordinator",
+      "content": "Just hanging here, ready to help! 🤖\n\nGot any tasks, bugs, or features you need routed? I can help coordinate work across the squad or answer questions about the codebase.",
+      "timestamp": "2026-03-06T14:11:58.101Z"
+    }
+  ]
+}
